@@ -2,3 +2,6 @@
 backend/.env
 backend/.venv
 frontend/node_modules
+frontend/.next
+next-env.d.ts
+package-lock.json
