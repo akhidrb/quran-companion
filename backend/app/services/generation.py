@@ -15,15 +15,19 @@ def _build_system_prompt(sources: list[VerseResult]) -> str:
     if not sources:
         return _NO_SOURCES_PROMPT
 
-    context_blocks = []
+    verse_blocks = []
     for v in sources:
         block = f"[{v.surah_name} {v.surah_number}:{v.ayah_number}]\n"
-        block += f"Translation: {v.translation}\n"
+        if v.translations:
+            for t in v.translations:
+                block += f"Translation ({t.name}): {t.text}\n"
+        else:
+            block += f"Translation: {v.translation}\n"
         if v.tafsir:
             block += f"Tafsir (Ibn Kathir): {v.tafsir[:600]}…"
-        context_blocks.append(block)
+        verse_blocks.append(block)
 
-    context = "\n\n---\n\n".join(context_blocks)
+    context = "\n\n---\n\n".join(verse_blocks)
 
     return f"""You are a Quran Companion assistant. Answer ONLY from the retrieved verses and tafsir below.
 

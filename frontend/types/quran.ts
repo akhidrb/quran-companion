@@ -1,3 +1,8 @@
+export interface Translation {
+  name: string
+  text: string
+}
+
 export interface Verse {
   id: number
   surah_number: number
@@ -12,6 +17,7 @@ export interface Verse {
 
 export interface VerseResult extends Verse {
   similarity: number
+  translations: Translation[]
 }
 
 export interface AskResponse {

@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
 
+class Translation(BaseModel):
+    name: str
+    text: str
+
+
 class Verse(BaseModel):
     id: int
     surah_number: int
@@ -15,6 +20,7 @@ class Verse(BaseModel):
 
 class VerseResult(Verse):
     similarity: float
+    translations: list[Translation] = []
 
 
 class AskRequest(BaseModel):

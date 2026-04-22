@@ -30,8 +30,8 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 db = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-ALQURAN_BASE = "https://api.alquran.cloud/v1"
-TAFSIR_CDN = "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafisr-ibn-kathir"
+ALQURAN_BASE = os.environ.get("ALQURAN_API_URL", "https://api.alquran.cloud/v1")
+TAFSIR_CDN = os.environ.get("TAFSIR_CDN_URL", "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafisr-ibn-kathir")
 TOTAL_SURAHS = 114
 EMBED_BATCH = 100
 TAFSIR_CONCURRENCY = 10

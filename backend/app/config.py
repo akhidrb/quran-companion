@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     openai_api_key: str
     anthropic_api_key: str
 
+    alquran_api_url: str = "https://api.alquran.cloud/v1"
+    tafsir_cdn_url: str = "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafisr-ibn-kathir"
+
     model_config = {"env_file": ".env"}
 
 
