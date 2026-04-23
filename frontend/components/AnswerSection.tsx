@@ -1,3 +1,4 @@
+import ReactMarkdown from 'react-markdown'
 import VerseCard from './VerseCard'
 import ReflectionCard from './ReflectionCard'
 import type { AskResponse } from '@/types/quran'
@@ -21,7 +22,19 @@ export default function AnswerSection({ result }: { result: AskResponse }) {
             </span>
           )}
         </div>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => <p className="mb-3 text-sm leading-relaxed last:mb-0">{children}</p>,
+            strong: ({ children }) => <strong className="font-semibold text-amber-300">{children}</strong>,
+            em: ({ children }) => <em className="italic text-emerald-200">{children}</em>,
+            ul: ({ children }) => <ul className="mb-3 ml-4 space-y-1 text-sm">{children}</ul>,
+            ol: ({ children }) => <ol className="mb-3 ml-4 space-y-1 list-decimal text-sm">{children}</ol>,
+            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+            h3: ({ children }) => <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">{children}</h3>,
+          }}
+        >
+          {result.answer}
+        </ReactMarkdown>
       </div>
 
       {/* Direct matches */}
