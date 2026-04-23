@@ -28,8 +28,9 @@ export async function getSurahVerses(surahNumber: number): Promise<VerseDetail[]
 export async function getVerseReflection(
   surahNumber: number,
   ayahNumber: number,
-): Promise<VerseReflection[]> {
+): Promise<string> {
   const res = await fetch(`/api/quran/verses/${surahNumber}/${ayahNumber}/reflection`)
   if (!res.ok) throw new Error('Failed to load reflection')
-  return res.json()
+  const data = await res.json()
+  return data.reflection
 }

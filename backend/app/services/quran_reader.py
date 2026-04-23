@@ -2,7 +2,9 @@ import asyncio
 import httpx
 from ..config import settings
 from ..database import supabase
-from ..schemas import SurahInfo, VerseDetail, VerseReflection, Translation
+from ..schemas import SurahInfo, VerseDetail, Translation
+from .retrieval import retrieve
+from .generation import generate_answer
 
 BASE = settings.alquran_api_url
 EDITIONS = "en.sahih,en.yusufali,en.asad"
@@ -30,14 +32,34 @@ def _fetch_verses_sync(surah_number: int) -> list[dict]:
     return result.data or []
 
 
-def _fetch_reflections_for_surah_sync(surah_number: int) -> list[dict]:
+def _get_cached_reflection_sync(surah_number: int, ayah_number: int) -> str | None:
     result = (
-        supabase.table("reflections")
-        .select("id, source, author, verse_ref, content")
+        supabase.table("verse_reflections")
+        .select("reflection")
         .eq("surah_number", surah_number)
+        .eq("ayah_number", ayah_number)
+        .maybe_single()
         .execute()
     )
-    return result.data or []
+    return result.data["reflection"] if result.data else None
+
+
+def _save_reflection_sync(surah_number: int, ayah_number: int, reflection: str) -> None:
+    supabase.table("verse_reflections").upsert(
+        {"surah_number": surah_number, "ayah_number": ayah_number, "reflection": reflection},
+        on_conflict="surah_number,ayah_number",
+    ).execute()
+
+
+def _get_surah_name_sync(surah_number: int) -> str:
+    result = (
+        supabase.table("verses")
+        .select("surah_name")
+        .eq("surah_number", surah_number)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0]["surah_name"] if result.data else f"Surah {surah_number}"
 
 
 async def _fetch_surah_translations(surah_number: int) -> dict[int, list[dict]]:
@@ -61,32 +83,6 @@ async def _fetch_surah_translations(surah_number: int) -> dict[int, list[dict]]:
         return {}
 
 
-def _verse_ref_matches(verse_ref: str | None, ayah: int) -> bool:
-    if not verse_ref:
-        return True  # surah-level reflection
-    for part in verse_ref.split(","):
-        part = part.strip()
-        if "-" in part:
-            try:
-                start, end = part.split("-", 1)
-                if int(start.strip()) <= ayah <= int(end.strip()):
-                    return True
-            except ValueError:
-                pass
-        elif part.isdigit() and int(part) == ayah:
-            return True
-    return False
-
-
-def _ref_specificity(verse_ref: str | None) -> int:
-    """Lower = more specific. Exact ayah < range < surah-level."""
-    if not verse_ref:
-        return 2
-    if verse_ref.strip().lstrip("0123456789") == "":
-        return 0  # single digit — exact match
-    return 1  # range
-
-
 async def fetch_surah_list() -> list[SurahInfo]:
     rows = await asyncio.to_thread(_fetch_surah_list_sync)
     return [SurahInfo(**row) for row in rows]
@@ -108,8 +104,16 @@ async def fetch_surah_verses(surah_number: int) -> list[VerseDetail]:
     ]
 
 
-async def fetch_verse_reflection(surah_number: int, ayah_number: int) -> list[VerseReflection]:
-    rows = await asyncio.to_thread(_fetch_reflections_for_surah_sync, surah_number)
-    matches = [r for r in rows if _verse_ref_matches(r.get("verse_ref"), ayah_number)]
-    matches.sort(key=lambda r: _ref_specificity(r.get("verse_ref")))
-    return [VerseReflection(**r) for r in matches[:5]]
+async def fetch_verse_reflection(surah_number: int, ayah_number: int) -> str:
+    """Return cached reflection from DB, or generate live and cache it for next time."""
+    cached = await asyncio.to_thread(_get_cached_reflection_sync, surah_number, ayah_number)
+    if cached:
+        return cached
+
+    surah_name = await asyncio.to_thread(_get_surah_name_sync, surah_number)
+    question = f"Reflect on verse {surah_name} {surah_number}:{ayah_number}"
+    sources, reflections = await retrieve(question, top_k=7)
+    reflection = await generate_answer(question, sources, reflections)
+
+    await asyncio.to_thread(_save_reflection_sync, surah_number, ayah_number, reflection)
+    return reflection

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { getSurahs, getSurahVerses, askQuestion } from '@/lib/api'
+import { getSurahs, getSurahVerses, getVerseReflection } from '@/lib/api'
 import type { SurahInfo, VerseDetail } from '@/types/quran'
 
 export default function QuranPage() {
@@ -41,11 +41,7 @@ export default function QuranPage() {
     setLoadingReflection(true)
     panelRef.current?.scrollTo({ top: 0 })
     try {
-      const surahName = selectedSurah?.surah_name ?? `Surah ${verse.surah_number}`
-      const result = await askQuestion(
-        `Reflect on verse ${surahName} ${verse.surah_number}:${verse.ayah_number}`,
-      )
-      setReflection(result.answer)
+      setReflection(await getVerseReflection(verse.surah_number, verse.ayah_number))
     } catch (e) {
       console.error(e)
       setReflection('Could not load reflection. Please try again.')

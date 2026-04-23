@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..schemas import SurahInfo, VerseDetail, VerseReflection
+from ..schemas import SurahInfo, VerseDetail
 from ..services.quran_reader import fetch_surah_list, fetch_surah_verses, fetch_verse_reflection
 
 router = APIRouter()
@@ -17,6 +17,7 @@ async def get_surah(surah_number: int) -> list[VerseDetail]:
     return await fetch_surah_verses(surah_number)
 
 
-@router.get("/verses/{surah_number}/{ayah_number}/reflection", response_model=list[VerseReflection])
-async def get_verse_reflection(surah_number: int, ayah_number: int) -> list[VerseReflection]:
-    return await fetch_verse_reflection(surah_number, ayah_number)
+@router.get("/verses/{surah_number}/{ayah_number}/reflection")
+async def get_verse_reflection(surah_number: int, ayah_number: int) -> dict:
+    reflection = await fetch_verse_reflection(surah_number, ayah_number)
+    return {"reflection": reflection}
