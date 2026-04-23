@@ -38,3 +38,25 @@ export interface AskResponse {
   fallback: boolean
   query: string
 }
+
+export interface SurahInfo {
+  surah_number: number
+  surah_name: string
+  surah_name_arabic: string
+  ayah_count: number
+}
+
+export interface VerseDetail {
+  surah_number: number
+  ayah_number: number
+  arabic_text: string
+  translations: Translation[]
+}
+
+export interface VerseReflection {
+  id: number
+  source: string
+  author: string
+  verse_ref: string | null
+  content: string
+}

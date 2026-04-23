@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from .routes.ask import router as ask_router
+from .routes.quran import router as quran_router
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(ask_router, prefix="/api")
+app.include_router(quran_router, prefix="/api/quran")
 
 
 @app.exception_handler(Exception)

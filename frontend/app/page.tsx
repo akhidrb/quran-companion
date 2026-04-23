@@ -34,19 +34,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen">
-      <header className="border-b border-stone-200 bg-white px-6 py-4">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-800 font-amiri text-lg text-white">
-            ق
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-stone-800">Quran Companion</h1>
-            <p className="text-xs text-stone-400">Islamic guidance for any question</p>
-          </div>
-        </div>
-      </header>
-
+    <main>
       <div className="mx-auto max-w-3xl px-6 py-10">
         <QuestionInput onAsk={handleAsk} loading={loading} />
 

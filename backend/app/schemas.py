@@ -35,6 +35,28 @@ class ReflectionResult(BaseModel):
     similarity: float
 
 
+class SurahInfo(BaseModel):
+    surah_number: int
+    surah_name: str
+    surah_name_arabic: str
+    ayah_count: int
+
+
+class VerseDetail(BaseModel):
+    surah_number: int
+    ayah_number: int
+    arabic_text: str
+    translations: list[Translation] = []
+
+
+class VerseReflection(BaseModel):
+    id: int
+    source: str
+    author: str
+    verse_ref: str | None
+    content: str
+
+
 class AskRequest(BaseModel):
     question: str
 
