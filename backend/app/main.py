@@ -1,6 +1,10 @@
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .routes.ask import router as ask_router
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Quran Companion API", version="0.1.0")
 
@@ -12,6 +16,15 @@ app.add_middleware(
 )
 
 app.include_router(ask_router, prefix="/api")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled error on %s", request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again."},
+    )
 
 
 @app.get("/health")

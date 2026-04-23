@@ -11,13 +11,16 @@ EDITION_LABELS = {
     "en.asad": "Muhammad Asad",
 }
 
-_client = httpx.AsyncClient(timeout=8.0)
+# Fresh client per request avoids stale connections after idle periods
+_TIMEOUT = httpx.Timeout(6.0, connect=3.0)
+_LIMITS = httpx.Limits(max_keepalive_connections=10, max_connections=20)
 
 
 async def fetch_translations(surah: int, ayah: int) -> list[dict]:
     """Returns [{name, text}, ...] for the configured editions. Falls back to [] on error."""
     try:
-        r = await _client.get(f"{BASE}/ayah/{surah}:{ayah}/editions/{EDITIONS}")
+        async with httpx.AsyncClient(timeout=_TIMEOUT, limits=_LIMITS) as client:
+            r = await client.get(f"{BASE}/ayah/{surah}:{ayah}/editions/{EDITIONS}")
         if r.status_code != 200:
             return []
         return [
