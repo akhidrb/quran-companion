@@ -60,3 +60,19 @@ export interface VerseReflection {
   verse_ref: string | null
   content: string
 }
+
+export interface GuidanceResponse {
+  answer: string
+  sources: VerseResult[]
+  query: string
+}
+
+export interface DailyEntry {
+  date: string
+  theme: string
+  ayah_reference: string
+  ayah_arabic: string
+  ayah_translation: string
+  surah_name: string
+  entry: string
+}

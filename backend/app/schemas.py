@@ -67,3 +67,23 @@ class AskResponse(BaseModel):
     reflections: list[ReflectionResult]
     fallback: bool
     query: str
+
+
+class GuidanceRequest(BaseModel):
+    feeling: str
+
+
+class GuidanceResponse(BaseModel):
+    answer: str
+    sources: list[VerseResult]
+    query: str
+
+
+class DailyEntry(BaseModel):
+    date: str
+    theme: str
+    ayah_reference: str
+    ayah_arabic: str
+    ayah_translation: str
+    surah_name: str
+    entry: str

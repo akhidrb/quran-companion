@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation'
 const TABS = [
   { label: 'Ask', href: '/' },
   { label: 'Read', href: '/quran' },
+  { label: 'Guidance', href: '/guidance' },
+  { label: 'Daily', href: '/daily' },
 ]
 
 export default function NavLinks() {
