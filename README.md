@@ -1,21 +1,24 @@
 # Quran Companion
 
-An AI-powered Quran assistant that answers questions grounded in Quranic verses, classical Tafsir, and scholarly reflections. Built on a hybrid RAG architecture — retrieval provides grounding and citations, Claude provides synthesis, scholarly voice, and depth.
+A personal Islamic study companion with two modes: ask any question and get a grounded AI answer, or read through the full Quran and reflect on any verse. Built on a hybrid RAG architecture — retrieval provides grounding and citations from classical sources, Claude provides synthesis, scholarly voice, and depth.
 
 ---
 
 ## What it does
 
-Users can ask questions in natural language or by verse reference:
+### Ask tab — Islamic Q&A
+
+Ask anything in natural language, from direct verse lookups to personal questions:
 
 - _"What does Ayat Al-Kursi mean?"_
 - _"Show verses about patience (sabr)"_
 - _"What is the tafsir of 2:286?"_
-- _"Summarize Surah Al-Fatiha"_
+- _"I feel drained and have no energy"_
+- _"How do I deal with anxiety?"_
 - _"2:255"_ — direct verse lookup
 
 Every answer includes:
-- **Synthesized answer** — Claude draws connections across sources, adapts tone to the question
+- **Synthesized answer** — Claude adapts tone to the question: scholarly depth for Quranic questions, compassionate guidance for personal ones
 - **Arabic text** of the retrieved verse(s)
 - **Three English translations** — Saheeh International, Yusuf Ali, Muhammad Asad (fetched live from alquran.cloud)
 - **Tafsir excerpt** from Ibn Kathir (expandable)
@@ -23,6 +26,10 @@ Every answer includes:
 - **Source citations** — Surah name + ayah number on every claim
 - **Confidence classification** — Direct Matches (≥ 0.65 similarity) vs Related Verses
 - **Low confidence flag** — shown when retrieval confidence is below 50%
+
+### Read tab — Quran reader
+
+Browse all 114 surahs and read every verse with Arabic text and English translation. Click any verse to open a reflection panel — the AI draws on Fi Zilal al-Quran and Ibn Kathir to generate a reflection grounded in classical scholarship. Reflections are pre-generated and cached so they load instantly after the first request. The reflection panel is resizable by dragging its left edge.
 
 ---
 
@@ -102,35 +109,43 @@ quran-companion/
 │   │   ├── database.py              # Supabase client
 │   │   ├── schemas.py               # Pydantic models
 │   │   ├── routes/
-│   │   │   └── ask.py               # POST /api/ask
+│   │   │   ├── ask.py               # POST /api/ask
+│   │   │   └── quran.py             # GET /api/quran/surahs, /surahs/{n}, /verses/{s}/{a}/reflection
 │   │   └── services/
 │   │       ├── embeddings.py        # OpenAI embedding calls
 │   │       ├── retrieval.py         # Concurrent verse + reflection search
 │   │       ├── alquran.py           # alquran.cloud runtime enrichment
-│   │       └── generation.py        # Hybrid Claude prompt + generation
+│   │       ├── generation.py        # Hybrid Claude prompt + generation
+│   │       └── quran_reader.py      # Surah list, verse fetch, cached reflection lookup
 │   ├── scripts/
 │   │   ├── ingest.py                # One-time: all 6,236 verses + Ibn Kathir tafsir
-│   │   └── ingest_reflection.py     # Per-book: ingest any PDF into reflections table
+│   │   ├── ingest_reflection.py     # Per-book: ingest any PDF into reflections table
+│   │   └── generate_reflections.py  # Background worker: pre-generate verse reflections
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx                 # Main Q&A page
+│   │   ├── layout.tsx               # Shared header + nav (Ask / Read tabs)
+│   │   ├── page.tsx                 # Ask tab — Q&A with RAG answers
+│   │   ├── quran/
+│   │   │   └── page.tsx             # Read tab — Quran reader with reflection panel
 │   │   └── globals.css
 │   ├── components/
+│   │   ├── NavLinks.tsx             # Active-tab nav links
 │   │   ├── QuestionInput.tsx        # Search input with Enter-to-submit
 │   │   ├── AnswerSection.tsx        # Answer + direct/related/reflections layout
 │   │   ├── VerseCard.tsx            # Arabic, 3 translations, tafsir toggle
 │   │   └── ReflectionCard.tsx       # Fi Zilal passage with expand toggle
 │   ├── lib/
-│   │   └── api.ts                   # fetch wrapper for /api/ask
+│   │   └── api.ts                   # fetch wrappers for all API endpoints
 │   └── types/
 │       └── quran.ts                 # TypeScript interfaces
 └── supabase/
     └── migrations/
         ├── 001_verses.sql           # verses table, ivfflat index, match_verses fn
-        └── 003_reflections.sql      # reflections table, ivfflat index, match_reflections fn
+        ├── 003_reflections.sql      # reflections table, ivfflat index, match_reflections fn
+        ├── 004_quran_reader.sql     # get_surah_list() postgres function
+        └── 005_verse_reflections.sql # verse_reflections table (pre-generated AI reflections)
 ```
 
 ---
@@ -169,7 +184,20 @@ CREATE TABLE reflections (
 );
 ```
 
-Both tables use **IVFFlat indexes** with cosine distance. The `reflections` table is reusable — any number of books can be ingested with different `source` and `author` values.
+### verse_reflections
+
+```sql
+CREATE TABLE verse_reflections (
+    id           SERIAL PRIMARY KEY,
+    surah_number INTEGER NOT NULL,
+    ayah_number  INTEGER NOT NULL,
+    reflection   TEXT    NOT NULL,
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (surah_number, ayah_number)
+);
+```
+
+Both vector tables use **IVFFlat indexes** with cosine distance. The `reflections` table is reusable — any number of books can be ingested with different `source` and `author` values. The `verse_reflections` table acts as a cache for pre-generated AI reflections; it is populated by the `generate_reflections.py` worker.
 
 ---
 
@@ -208,6 +236,8 @@ This classification is passed to Claude in the prompt so it knows which verses t
 2. In the SQL Editor run: `CREATE EXTENSION IF NOT EXISTS vector;`
 3. Run `supabase/migrations/001_verses.sql`
 4. Run `supabase/migrations/003_reflections.sql`
+5. Run `supabase/migrations/004_quran_reader.sql`
+6. Run `supabase/migrations/005_verse_reflections.sql`
 
 ### 2. Backend
 
@@ -243,13 +273,41 @@ python scripts/ingest_reflection.py \
 
 Any book can be added later using the same script with a different `--source` and `--author`.
 
-### 5. Run the backend
+### 5. Pre-generate verse reflections (optional, background worker)
+
+The Quran reader tab shows an AI reflection when you click any verse. Reflections are generated on-demand and cached in `verse_reflections`. To pre-populate the cache so every verse loads instantly, run the worker:
+
+```bash
+# Test with a single surah first
+python scripts/generate_reflections.py --surah 1
+
+# Process a batch of N unprocessed verses (safe to re-run — skips already-done verses)
+python scripts/generate_reflections.py --limit 100
+
+# Process only a specific surah
+python scripts/generate_reflections.py --surah 2
+
+# Adjust delay between API calls (default 0.5s — lower is faster but uses more rate limit)
+python scripts/generate_reflections.py --limit 100 --delay 0.3
+
+# Combine flags — e.g. process 50 verses from Al-Imran
+python scripts/generate_reflections.py --surah 3 --limit 50
+
+# Full Quran — run unattended (will take several hours)
+python scripts/generate_reflections.py
+```
+
+The script prints live progress with an estimated time remaining and skips any verse that already has a stored reflection, so it is safe to stop and resume at any time.
+
+**Cost estimate:** each verse costs roughly $0.012 (Claude Sonnet input + output). Full Quran (6,236 verses) ≈ **$75 total**.
+
+### 6. Run the backend
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 6. Frontend
+### 7. Frontend
 
 ```bash
 cd frontend
