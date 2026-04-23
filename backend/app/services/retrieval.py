@@ -13,12 +13,16 @@ def _parse_verse_ref(query: str) -> tuple[int, int] | None:
     return None
 
 
-def _search_verses_sync(embedding: list[float], top_k: int) -> list[VerseResult]:
+def _confidence(similarity: float) -> str:
+    return "direct" if similarity >= 0.65 else "related"
+
+
+def _search_verses_sync(embedding: list[float], top_k: int) -> list[dict]:
     result = supabase.rpc(
         "match_verses",
         {"query_embedding": embedding, "match_threshold": 0.3, "match_count": top_k},
     ).execute()
-    return [VerseResult(**row) for row in (result.data or [])]
+    return result.data or []
 
 
 def _fetch_verse_direct_sync(surah: int, ayah: int) -> dict | None:
@@ -33,24 +37,28 @@ def _fetch_verse_direct_sync(surah: int, ayah: int) -> dict | None:
     return result.data
 
 
-async def retrieve(query: str, top_k: int = 5) -> list[VerseResult]:
+async def retrieve(query: str, top_k: int = 7) -> list[VerseResult]:
     verse_ref = _parse_verse_ref(query)
     query_embedding = await embed(query)
 
-    verses = await asyncio.to_thread(_search_verses_sync, query_embedding, top_k)
+    rows = await asyncio.to_thread(_search_verses_sync, query_embedding, top_k)
 
     if verse_ref:
         surah, ayah = verse_ref
         direct = await asyncio.to_thread(_fetch_verse_direct_sync, surah, ayah)
         if direct:
-            existing_ids = {r.id for r in verses}
+            existing_ids = {r["id"] for r in rows}
             if direct["id"] not in existing_ids:
-                verses.insert(0, VerseResult(**direct, similarity=1.0))
-                verses = verses[:top_k]
+                rows.insert(0, {**direct, "similarity": 1.0})
+                rows = rows[:top_k]
 
-    verse_dicts = [v.model_dump() for v in verses]
-    enriched = await enrich_verses(verse_dicts)
+    enriched = await enrich_verses(rows)
+
     return [
-        VerseResult(**{**d, "translations": [Translation(**t) for t in d.get("translations", [])]})
-        for d in enriched
+        VerseResult(
+            **{k: v for k, v in row.items() if k != "translations"},
+            confidence=_confidence(row["similarity"]),
+            translations=[Translation(**t) for t in row.get("translations", [])],
+        )
+        for row in enriched
     ]

@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel
 
 
@@ -20,6 +21,7 @@ class Verse(BaseModel):
 
 class VerseResult(Verse):
     similarity: float
+    confidence: Literal["direct", "related"]  # direct >= 0.65, related < 0.65
     translations: list[Translation] = []
 
 

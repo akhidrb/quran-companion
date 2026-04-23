@@ -17,6 +17,7 @@ export interface Verse {
 
 export interface VerseResult extends Verse {
   similarity: number
+  confidence: 'direct' | 'related'
   translations: Translation[]
 }
 
