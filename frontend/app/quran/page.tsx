@@ -13,11 +13,33 @@ export default function QuranPage() {
   const [selectedVerse, setSelectedVerse] = useState<VerseDetail | null>(null)
   const [reflection, setReflection] = useState<string | null>(null)
   const [loadingReflection, setLoadingReflection] = useState(false)
+  const [panelWidth, setPanelWidth] = useState(384)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     getSurahs().then(setSurahs).catch(console.error)
   }, [])
+
+  function onDragStart(e: React.MouseEvent) {
+    const startX = e.clientX
+    const startWidth = panelWidth
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+
+    function onMove(e: MouseEvent) {
+      const delta = startX - e.clientX
+      setPanelWidth(Math.min(Math.max(startWidth + delta, 300), 900))
+    }
+    function onUp() {
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    e.preventDefault()
+  }
 
   async function handleSelectSurah(surahNumber: number) {
     const surah = surahs.find((s) => s.surah_number === surahNumber) ?? null
@@ -53,7 +75,10 @@ export default function QuranPage() {
   return (
     <div className="relative flex min-h-[calc(100vh-57px)]">
       {/* Verse list */}
-      <div className={`flex-1 transition-all duration-300 ${selectedVerse ? 'md:mr-[24rem]' : ''}`}>
+      <div
+        className="flex-1 transition-[margin] duration-300"
+        style={{ marginRight: selectedVerse ? panelWidth : 0 }}
+      >
         {/* Surah picker */}
         <div className="sticky top-0 z-10 border-b border-stone-200 bg-white px-6 py-3">
           <div className="mx-auto max-w-3xl">
@@ -155,8 +180,14 @@ export default function QuranPage() {
           {/* Panel */}
           <div
             ref={panelRef}
-            className="fixed bottom-0 right-0 top-[57px] z-30 flex w-full flex-col overflow-y-auto border-l border-stone-200 bg-white shadow-2xl md:w-96"
+            className="fixed bottom-0 right-0 top-[57px] z-30 flex w-full flex-col overflow-y-auto border-l border-stone-200 bg-white shadow-2xl"
+            style={{ width: panelWidth }}
           >
+            {/* Drag handle */}
+            <div
+              onMouseDown={onDragStart}
+              className="absolute bottom-0 left-0 top-0 w-1 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-400/30 active:bg-emerald-400/50"
+            />
             {/* Panel header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
               <div>
