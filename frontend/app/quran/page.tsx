@@ -198,7 +198,7 @@ export default function QuranPage() {
             </div>
 
             {/* AI reflection */}
-            <div className="flex-1 px-5 py-4">
+            <div className="flex-1 px-5 py-5">
               {loadingReflection && (
                 <div className="flex flex-col items-center gap-3 pt-8 text-stone-400">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700" />
@@ -207,29 +207,43 @@ export default function QuranPage() {
               )}
 
               {!loadingReflection && reflection && (
-                <ReactMarkdown
-                  components={{
-                    p: ({ children }) => (
-                      <p className="mb-3 text-sm leading-relaxed text-stone-700 last:mb-0">
-                        {children}
-                      </p>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="font-semibold text-emerald-800">{children}</strong>
-                    ),
-                    em: ({ children }) => (
-                      <em className="italic text-stone-600">{children}</em>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="mb-3 ml-4 space-y-1 text-sm">{children}</ul>
-                    ),
-                    li: ({ children }) => (
-                      <li className="leading-relaxed text-stone-700">{children}</li>
-                    ),
-                  }}
-                >
-                  {reflection}
-                </ReactMarkdown>
+                <div className="rounded-2xl bg-emerald-900 p-5 text-white shadow">
+                  <div className="mb-4 flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-amber-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                      Reflection
+                    </span>
+                  </div>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => (
+                        <p className="mb-3 text-sm leading-relaxed last:mb-0">{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-amber-300">{children}</strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-emerald-200">{children}</em>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="mb-3 ml-4 space-y-1 text-sm">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="mb-3 ml-4 list-decimal space-y-1 text-sm">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="leading-relaxed">{children}</li>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">
+                          {children}
+                        </h3>
+                      ),
+                    }}
+                  >
+                    {reflection}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
           </div>
