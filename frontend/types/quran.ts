@@ -21,9 +21,20 @@ export interface VerseResult extends Verse {
   translations: Translation[]
 }
 
+export interface ReflectionResult {
+  id: number
+  source: string
+  author: string
+  surah_number: number | null
+  verse_ref: string | null
+  content: string
+  similarity: number
+}
+
 export interface AskResponse {
   answer: string
   sources: VerseResult[]
+  reflections: ReflectionResult[]
   fallback: boolean
   query: string
 }

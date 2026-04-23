@@ -12,13 +12,14 @@ async def ask(request: AskRequest) -> AskResponse:
     if not question:
         raise HTTPException(status_code=400, detail="Question is required")
 
-    sources = await retrieve(question, top_k=5)
+    sources, reflections = await retrieve(question, top_k=7)
     top_similarity = max((s.similarity for s in sources), default=0.0)
-    answer = await generate_answer(question, sources)
+    answer = await generate_answer(question, sources, reflections)
 
     return AskResponse(
         answer=answer,
         sources=sources,
+        reflections=reflections,
         fallback=top_similarity < 0.5,
         query=question,
     )

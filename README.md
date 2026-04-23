@@ -1,6 +1,6 @@
 # Quran Companion
 
-An AI-powered Quran assistant that answers questions grounded exclusively in Quranic verses and classical Tafsir. Built on Retrieval-Augmented Generation (RAG) — the assistant never answers from its own training data, only from what it retrieves from trusted Islamic sources.
+An AI-powered Quran assistant that answers questions grounded in Quranic verses, classical Tafsir, and scholarly reflections. Built on a hybrid RAG architecture — retrieval provides grounding and citations, Claude provides synthesis, scholarly voice, and depth.
 
 ---
 
@@ -15,40 +15,52 @@ Users can ask questions in natural language or by verse reference:
 - _"2:255"_ — direct verse lookup
 
 Every answer includes:
+- **Synthesized answer** — Claude draws connections across sources, adapts tone to the question
 - **Arabic text** of the retrieved verse(s)
-- **Three English translations** — Saheeh International, Yusuf Ali, Muhammad Asad
+- **Three English translations** — Saheeh International, Yusuf Ali, Muhammad Asad (fetched live from alquran.cloud)
 - **Tafsir excerpt** from Ibn Kathir (expandable)
-- **Source citation** — Surah name + ayah number
-- **Similarity score** — how closely each verse matched the query
+- **Reflections** from Fi Zilal al-Quran — Sayyid Qutb (expandable)
+- **Source citations** — Surah name + ayah number on every claim
+- **Confidence classification** — Direct Matches (≥ 0.65 similarity) vs Related Verses
 - **Low confidence flag** — shown when retrieval confidence is below 50%
 
 ---
 
-## How it works — RAG Pipeline
+## Architecture — Hybrid RAG
+
+The core principle: **retrieval grounds, LLM synthesizes**.
 
 ```
 User question
-     │
-     ▼
-1. EMBED          OpenAI text-embedding-3-small converts the question to a 1,536-dim vector
-     │
-     ▼
-2. RETRIEVE       pgvector (Supabase) finds the top-5 most similar verses via cosine similarity
-     │             If the query contains a verse reference like "2:255", that verse is pinned at position 0
-     ▼
-3. ENRICH         alquran.cloud fetches 3 translations for each retrieved verse in parallel
-     │
-     ▼
-4. GENERATE       Claude (claude-sonnet-4-6) receives only the retrieved verses + tafsir as context
-     │             It is instructed to cite sources and never add unsupported claims
-     ▼
-5. RESPOND        Structured JSON returned to the frontend:
-                  { answer, sources, fallback, query }
+      │
+      ▼
+ EMBED ──────── OpenAI text-embedding-3-small → 1,536-dim vector
+      │
+      ▼
+ RETRIEVE ───── Supabase pgvector (concurrent searches)
+      │          ├── match_verses   → top-7 Quran verses + Ibn Kathir tafsir
+      │          └── match_reflections → top-3 Fi Zilal al-Quran passages
+      │          If query contains "2:255", that verse is pinned at position 0
+      ▼
+ ENRICH ─────── alquran.cloud (concurrent per verse)
+      │          └── 3 English translations: Saheeh International, Yusuf Ali, Asad
+      ▼
+ GENERATE ───── Claude claude-sonnet-4-6 (hybrid prompt)
+      │          ├── GROUNDING: cite surah:ayah for every claim
+      │          ├── SYNTHESIS: connect verses, draw out themes
+      │          ├── REFLECTIONS: weave in Sayyid Qutb's insights
+      │          └── TONE: adapt to question type (spiritual / academic)
+      ▼
+ RESPOND ─────── { answer, sources, reflections, fallback, query }
 ```
 
-### Why RAG instead of a plain chatbot
+### Why hybrid instead of pure RAG or pure LLM
 
-A standard LLM can hallucinate Quranic content, misattribute tafsir, or mix interpretations from different schools. RAG grounds every answer in retrieved text — if the source doesn't say it, Claude doesn't say it either.
+| Approach | Problem |
+|----------|---------|
+| Pure LLM | Hallucinations — fabricates verses, misattributes tafsir |
+| Pure RAG | Robotic — presents retrieved chunks with no synthesis or depth |
+| **Hybrid** | Retrieval provides grounding + citations, Claude provides voice + connections |
 
 ---
 
@@ -61,8 +73,9 @@ A standard LLM can hallucinate Quranic content, misattribute tafsir, or mix inte
 | Vector database | Supabase (PostgreSQL + pgvector) |
 | Embeddings | OpenAI `text-embedding-3-small` (1,536 dims) |
 | Generation | Anthropic Claude `claude-sonnet-4-6` |
-| Arabic/Quran text | alquran.cloud API |
+| Quran text + translations | alquran.cloud API |
 | Tafsir (Ibn Kathir) | spa5k CDN via jsDelivr |
+| Reflections (Fi Zilal) | User-provided PDF → ingested into Supabase |
 
 ---
 
@@ -92,11 +105,12 @@ quran-companion/
 │   │   │   └── ask.py               # POST /api/ask
 │   │   └── services/
 │   │       ├── embeddings.py        # OpenAI embedding calls
-│   │       ├── retrieval.py         # Vector search + verse enrichment
-│   │       ├── alquran.py           # alquran.cloud runtime API calls
-│   │       └── generation.py        # Claude prompt + generation
+│   │       ├── retrieval.py         # Concurrent verse + reflection search
+│   │       ├── alquran.py           # alquran.cloud runtime enrichment
+│   │       └── generation.py        # Hybrid Claude prompt + generation
 │   ├── scripts/
-│   │   └── ingest.py                # One-time data ingestion (all 6,236 verses)
+│   │   ├── ingest.py                # One-time: all 6,236 verses + Ibn Kathir tafsir
+│   │   └── ingest_reflection.py     # Per-book: ingest any PDF into reflections table
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
@@ -106,20 +120,24 @@ quran-companion/
 │   │   └── globals.css
 │   ├── components/
 │   │   ├── QuestionInput.tsx        # Search input with Enter-to-submit
-│   │   ├── AnswerSection.tsx        # Answer + sources layout
-│   │   └── VerseCard.tsx            # Verse card with Arabic, translations, tafsir
+│   │   ├── AnswerSection.tsx        # Answer + direct/related/reflections layout
+│   │   ├── VerseCard.tsx            # Arabic, 3 translations, tafsir toggle
+│   │   └── ReflectionCard.tsx       # Fi Zilal passage with expand toggle
 │   ├── lib/
 │   │   └── api.ts                   # fetch wrapper for /api/ask
 │   └── types/
 │       └── quran.ts                 # TypeScript interfaces
 └── supabase/
     └── migrations/
-        └── 001_verses.sql           # Table, ivfflat index, match_verses function
+        ├── 001_verses.sql           # verses table, ivfflat index, match_verses fn
+        └── 003_reflections.sql      # reflections table, ivfflat index, match_reflections fn
 ```
 
 ---
 
 ## Database schema
+
+### verses
 
 ```sql
 CREATE TABLE verses (
@@ -127,33 +145,58 @@ CREATE TABLE verses (
   surah_number      INT  NOT NULL,
   ayah_number       INT  NOT NULL,
   arabic_text       TEXT NOT NULL,
-  translation       TEXT NOT NULL,   -- Saheeh International (fallback)
+  translation       TEXT NOT NULL,   -- Saheeh International (stored fallback)
   tafsir            TEXT,            -- Ibn Kathir English (from jsDelivr CDN)
   tafsir_source     TEXT DEFAULT 'Ibn Kathir',
   surah_name        TEXT NOT NULL,
   surah_name_arabic TEXT NOT NULL,
-  embedding         vector(1536),    -- text-embedding-3-small
+  embedding         vector(1536),
   UNIQUE (surah_number, ayah_number)
 );
 ```
 
-Similarity search uses an **IVFFlat index** (`lists = 80`, approximately `sqrt(6236)`) with cosine distance.
+### reflections
 
-The `match_verses` SQL function returns the top-k verses above a similarity threshold, ordered by cosine distance.
+```sql
+CREATE TABLE reflections (
+  id           BIGSERIAL PRIMARY KEY,
+  source       TEXT NOT NULL,   -- e.g. 'Fi Zilal al-Quran'
+  author       TEXT NOT NULL,   -- e.g. 'Sayyid Qutb'
+  surah_number INT,             -- detected from PDF text, nullable
+  verse_ref    TEXT,            -- e.g. '255' or '1-5', nullable
+  content      TEXT NOT NULL,   -- ~400-word chunk
+  embedding    vector(1536)
+);
+```
+
+Both tables use **IVFFlat indexes** with cosine distance. The `reflections` table is reusable — any number of books can be ingested with different `source` and `author` values.
 
 ---
 
 ## Embedding strategy
 
-Each verse is embedded as:
-
+**Verses** are embedded as:
 ```
 {surah_name} ({surah}:{ayah}): {english_translation}
-
-Tafsir: {first 300 chars of Ibn Kathir tafsir}
+Tafsir: {first 300 chars of Ibn Kathir}
 ```
 
-Including the tafsir excerpt in the embedding text means thematic queries ("forgiveness", "patience", "day of judgement") match against both the verse language and the classical commentary.
+**Reflections** are embedded as raw ~400-word text chunks extracted from the PDF, with surah and verse context prepended where detected.
+
+Including tafsir in the verse embedding means thematic queries ("forgiveness", "patience", "day of judgement") match against both the verse language and classical commentary.
+
+---
+
+## Confidence classification
+
+Retrieved verses are classified at query time:
+
+| Label | Similarity | Meaning |
+|-------|-----------|---------|
+| **Direct Match** | ≥ 0.65 | Highly relevant — central to the answer |
+| **Related Verse** | 0.3–0.65 | Thematically connected — adds context |
+
+This classification is passed to Claude in the prompt so it knows which verses to lead with and which to treat as supplementary.
 
 ---
 
@@ -162,11 +205,9 @@ Including the tafsir excerpt in the embedding text means thematic queries ("forg
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. In the SQL Editor, run:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
+2. In the SQL Editor run: `CREATE EXTENSION IF NOT EXISTS vector;`
 3. Run `supabase/migrations/001_verses.sql`
+4. Run `supabase/migrations/003_reflections.sql`
 
 ### 2. Backend
 
@@ -178,23 +219,37 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Ingest data (one-time, ~15 min)
+### 3. Ingest Quran data (one-time, ~15 min)
 
-Fetches all 6,236 verses from alquran.cloud + Ibn Kathir tafsir from jsDelivr, embeds them, and stores in Supabase.
+Fetches all 6,236 verses from alquran.cloud + Ibn Kathir tafsir from jsDelivr, embeds and stores in Supabase.
 
 ```bash
 python scripts/ingest.py
 ```
 
-Approximate cost: **~$0.01** (OpenAI embeddings for 6,236 verses).
+### 4. Ingest reflection books (one-time per book)
 
-### 4. Run the backend
+```bash
+# Single volume
+python scripts/ingest_reflection.py \
+    --pdf /path/to/volume.pdf \
+    --source "Fi Zilal al-Quran" --author "Sayyid Qutb"
+
+# All volumes at once (sorted by filename)
+python scripts/ingest_reflection.py \
+    --dir /path/to/volumes/ \
+    --source "Fi Zilal al-Quran" --author "Sayyid Qutb"
+```
+
+Any book can be added later using the same script with a different `--source` and `--author`.
+
+### 5. Run the backend
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 5. Frontend
+### 6. Frontend
 
 ```bash
 cd frontend
@@ -210,9 +265,11 @@ App available at `http://localhost:3000`.
 
 | Component | One-time | Per query |
 |-----------|----------|-----------|
-| Embeddings (ingest) | ~$0.01 | ~$0.00003 |
+| Verse ingest (OpenAI embeddings) | ~$0.01 | — |
+| Reflection ingest (OpenAI embeddings) | ~$0.02–0.05 | — |
 | Translations (alquran.cloud) | free | free |
-| Claude generation | — | ~$0.005 |
+| Query embedding (OpenAI) | — | ~$0.00003 |
+| Claude generation | — | ~$0.008 |
 | Supabase | free tier | free tier |
 
 At 100 questions/month the total cost is under **$1/month**.

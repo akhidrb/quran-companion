@@ -25,6 +25,16 @@ class VerseResult(Verse):
     translations: list[Translation] = []
 
 
+class ReflectionResult(BaseModel):
+    id: int
+    source: str
+    author: str
+    surah_number: int | None
+    verse_ref: str | None
+    content: str
+    similarity: float
+
+
 class AskRequest(BaseModel):
     question: str
 
@@ -32,5 +42,6 @@ class AskRequest(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     sources: list[VerseResult]
+    reflections: list[ReflectionResult]
     fallback: bool
     query: str

@@ -1,4 +1,5 @@
 import VerseCard from './VerseCard'
+import ReflectionCard from './ReflectionCard'
 import type { AskResponse } from '@/types/quran'
 
 export default function AnswerSection({ result }: { result: AskResponse }) {
@@ -54,6 +55,20 @@ export default function AnswerSection({ result }: { result: AskResponse }) {
                 verse={verse}
                 showSimilarity
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reflections */}
+      {result.reflections.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-400">
+            Reflections — Fi Zilal al-Quran ({result.reflections.length})
+          </h3>
+          <div className="space-y-3">
+            {result.reflections.map((r) => (
+              <ReflectionCard key={r.id} reflection={r} />
             ))}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import anthropic
 from ..config import settings
-from ..schemas import VerseResult
+from ..schemas import ReflectionResult, VerseResult
 
 _client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
@@ -64,18 +64,33 @@ Tell the user clearly, suggest they rephrase or try a direct verse reference lik
 """
 
 
-def _build_system_prompt(sources: list[VerseResult]) -> str:
-    if not sources:
+def _build_system_prompt(sources: list[VerseResult], reflections: list[ReflectionResult]) -> str:
+    if not sources and not reflections:
         return NO_SOURCES_PROMPT
+
     context = _build_context(sources)
+
+    if reflections:
+        reflection_blocks = []
+        for r in reflections:
+            ref = f"Surah {r.surah_number}" if r.surah_number else "General"
+            if r.verse_ref:
+                ref += f":{r.verse_ref}"
+            block = f"[{r.source} — {ref}]\n{r.content[:600]}"
+            if len(r.content) > 600:
+                block += "…"
+            reflection_blocks.append(block)
+        context += "\n\n=== Reflections (Fi Zilal al-Quran — Sayyid Qutb) ===\n\n"
+        context += "\n\n---\n\n".join(reflection_blocks)
+
     return f"{HYBRID_SYSTEM_PROMPT}\n\nRetrieved Sources:\n{context}"
 
 
-async def generate_answer(question: str, sources: list[VerseResult]) -> str:
+async def generate_answer(question: str, sources: list[VerseResult], reflections: list[ReflectionResult]) -> str:
     message = await _client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1500,
-        system=_build_system_prompt(sources),
+        system=_build_system_prompt(sources, reflections),
         messages=[{"role": "user", "content": question}],
     )
     block = message.content[0]
