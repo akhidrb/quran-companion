@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     alquran_api_url: str = "https://api.alquran.cloud/v1"
     tafsir_cdn_url: str = "https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/en-tafisr-ibn-kathir"
+    jwt_secret: str = "change-me-in-production-use-a-long-random-string"
 
     model_config = {"env_file": ".env"}
 

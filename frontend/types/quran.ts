@@ -76,3 +76,55 @@ export interface DailyEntry {
   surah_name: string
   entry: string
 }
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+
+export interface AuthUser {
+  id: number
+  username: string
+}
+
+export interface TokenResponse {
+  token: string
+  username: string
+  user_id: number
+}
+
+// ── History ─────────────────────────────────────────────────────────────────
+
+export interface AskHistoryItem {
+  id: number
+  question: string
+  answer: string
+  created_at: string
+}
+
+export interface GuidanceHistoryItem {
+  id: number
+  feeling: string
+  answer: string
+  created_at: string
+}
+
+export interface VerseReflectionHistoryItem {
+  id: number
+  surah_number: number
+  ayah_number: number
+  surah_name: string
+  arabic_text: string
+  translation: string
+  reflection: string
+  created_at: string
+}
+
+export interface DailyHistoryItem {
+  id: number
+  entry_date: string
+  theme: string
+  ayah_reference: string
+  ayah_arabic: string
+  ayah_translation: string
+  surah_name: string
+  entry: string
+  created_at: string
+}

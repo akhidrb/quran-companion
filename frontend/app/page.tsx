@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import QuestionInput from '@/components/QuestionInput'
 import AnswerSection from '@/components/AnswerSection'
 import { askQuestion } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 import type { AskResponse } from '@/types/quran'
 
 const EXAMPLES = [
@@ -16,6 +18,7 @@ const EXAMPLES = [
 ]
 
 export default function Home() {
+  const { user, isLoading } = useAuth()
   const [result, setResult] = useState<AskResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +72,15 @@ export default function Home() {
         )}
 
         {result && !loading && <AnswerSection result={result} />}
+
+        {result && !loading && !isLoading && !user && (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Create a simple account to save your reflections and return to them later.{' '}
+            <Link href="/auth" className="font-medium underline underline-offset-2">
+              Create account →
+            </Link>
+          </div>
+        )}
       </div>
     </main>
   )

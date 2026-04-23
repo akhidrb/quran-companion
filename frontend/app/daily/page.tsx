@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { getDailyEntry } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 import type { DailyEntry } from '@/types/quran'
 
 const THEMES = [
@@ -26,6 +28,7 @@ function formatDate(iso: string) {
 }
 
 export default function DailyPage() {
+  const { user, isLoading: authLoading } = useAuth()
   const [entry, setEntry] = useState<DailyEntry | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -158,6 +161,16 @@ export default function DailyPage() {
             <p className="text-center text-xs text-stone-400">
               A new entry awaits you tomorrow. Come back then.
             </p>
+
+            {/* Save banner for anonymous users */}
+            {!authLoading && !user && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                Create a simple account to save your daily reflections and revisit them any time.{' '}
+                <Link href="/auth" className="font-medium underline underline-offset-2">
+                  Create account →
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>

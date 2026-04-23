@@ -8,6 +8,7 @@ const TABS = [
   { label: 'Read', href: '/quran' },
   { label: 'Guidance', href: '/guidance' },
   { label: 'Daily', href: '/daily' },
+  { label: 'Library', href: '/library' },
 ]
 
 export default function NavLinks() {

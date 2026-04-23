@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Link from 'next/link'
 import ReactMarkdown from 'react-markdown'
 import { getGuidance } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 import type { GuidanceResponse } from '@/types/quran'
 
 const PROMPTS = [
@@ -15,6 +17,7 @@ const PROMPTS = [
 ]
 
 export default function GuidancePage() {
+  const { user, isLoading: authLoading } = useAuth()
   const [result, setResult] = useState<GuidanceResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -192,6 +195,16 @@ export default function GuidancePage() {
               This guidance is for reflection and support, not a formal religious ruling.
               For personal rulings, please consult a qualified Islamic scholar.
             </p>
+
+            {/* Save banner for anonymous users */}
+            {!authLoading && !user && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                Create a simple account to save your guidance and return to it later.{' '}
+                <Link href="/auth" className="font-medium underline underline-offset-2">
+                  Create account →
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>
