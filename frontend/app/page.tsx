@@ -7,11 +7,12 @@ import { askQuestion } from '@/lib/api'
 import type { AskResponse } from '@/types/quran'
 
 const EXAMPLES = [
-  'What does Ayat Al-Kursi mean?',
-  'Show verses about patience (sabr)',
-  'What is the tafsir of 2:286?',
-  'Verses about gratitude to Allah',
-  'Summarize Surah Al-Fatiha',
+  "I feel drained and have no energy",
+  "I'm going through a difficult time",
+  "How do I deal with anxiety?",
+  "What does Ayat Al-Kursi mean?",
+  "Show verses about patience (sabr)",
+  "What is the tafsir of 2:286?",
 ]
 
 export default function Home() {
@@ -41,7 +42,7 @@ export default function Home() {
           </div>
           <div>
             <h1 className="text-sm font-semibold text-stone-800">Quran Companion</h1>
-            <p className="text-xs text-stone-400">Answers grounded in Quran and Tafsir</p>
+            <p className="text-xs text-stone-400">Islamic guidance for any question</p>
           </div>
         </div>
       </header>

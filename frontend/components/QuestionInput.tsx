@@ -34,7 +34,7 @@ export default function QuestionInput({ onAsk, loading }: Props) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleKey}
-        placeholder='Ask a question or enter a verse reference like "2:255"…'
+        placeholder='Ask anything — a verse, a feeling, a situation, or a life question…'
         rows={3}
         disabled={loading}
         className="w-full resize-none rounded-2xl border border-stone-200 bg-white px-5 py-4 pr-24 text-base text-stone-800 shadow-sm placeholder:text-stone-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100 disabled:opacity-60"
