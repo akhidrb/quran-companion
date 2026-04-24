@@ -14,10 +14,19 @@ export default function QuranPage() {
   const [reflection, setReflection] = useState<string | null>(null)
   const [loadingReflection, setLoadingReflection] = useState(false)
   const [panelWidth, setPanelWidth] = useState(384)
+  const [isMobile, setIsMobile] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     getSurahs().then(setSurahs).catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [])
 
   function onDragStart(e: React.MouseEvent) {
@@ -77,10 +86,10 @@ export default function QuranPage() {
       {/* Verse list */}
       <div
         className="flex-1 transition-[margin] duration-300"
-        style={{ marginRight: selectedVerse ? panelWidth : 0 }}
+        style={{ marginRight: selectedVerse && !isMobile ? panelWidth : 0 }}
       >
         {/* Surah picker */}
-        <div className="sticky top-0 z-10 border-b border-stone-200 bg-white px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-stone-200 bg-white px-4 py-3 md:px-6">
           <div className="mx-auto max-w-3xl">
             <select
               defaultValue=""
@@ -99,7 +108,7 @@ export default function QuranPage() {
           </div>
         </div>
 
-        <div className="mx-auto max-w-3xl px-6 py-6">
+        <div className="mx-auto max-w-3xl px-4 py-6 md:px-6">
           {!selectedSurah && !loadingVerses && (
             <div className="mt-20 flex flex-col items-center gap-3 text-stone-400">
               <span className="font-amiri text-5xl">ق</span>
@@ -129,13 +138,13 @@ export default function QuranPage() {
                 <button
                   key={verse.ayah_number}
                   onClick={() => handleSelectVerse(verse)}
-                  className={`mb-3 w-full rounded-2xl border p-5 text-left transition-all hover:border-emerald-300 hover:shadow-sm ${
+                  className={`mb-3 w-full rounded-2xl border p-4 text-left transition-all hover:border-emerald-300 hover:shadow-sm md:p-5 ${
                     isSelected
                       ? 'border-emerald-400 bg-emerald-50 shadow-sm'
                       : 'border-stone-200 bg-white'
                   }`}
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3 md:gap-4">
                     <span
                       className={`mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                         isSelected ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-700'
@@ -143,9 +152,9 @@ export default function QuranPage() {
                     >
                       {verse.ayah_number}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p
-                        className="mb-4 font-amiri text-2xl leading-loose text-stone-800"
+                        className="mb-3 font-amiri text-xl leading-loose text-stone-800 md:text-2xl md:mb-4"
                         dir="rtl"
                         lang="ar"
                       >
@@ -172,22 +181,36 @@ export default function QuranPage() {
       {/* Reflection panel */}
       {selectedVerse && (
         <>
-          {/* Mobile backdrop */}
+          {/* Backdrop — covers bottom nav on mobile (z-40 > z-30) */}
           <div
-            className="fixed inset-0 z-20 bg-black/20 md:hidden"
+            className="fixed inset-0 z-40 bg-black/20 md:hidden"
             onClick={() => setSelectedVerse(null)}
           />
           {/* Panel */}
           <div
             ref={panelRef}
-            className="fixed bottom-0 right-0 top-[57px] z-30 flex w-full flex-col overflow-y-auto border-l border-stone-200 bg-white shadow-2xl"
-            style={{ width: panelWidth }}
+            className={`fixed z-50 flex flex-col overflow-y-auto bg-white shadow-2xl ${
+              isMobile
+                ? 'inset-x-0 bottom-0 max-h-[90vh] rounded-t-2xl border-t border-stone-200'
+                : 'bottom-0 right-0 top-[57px] border-l border-stone-200'
+            }`}
+            style={isMobile ? {} : { width: panelWidth }}
           >
-            {/* Drag handle */}
-            <div
-              onMouseDown={onDragStart}
-              className="absolute bottom-0 left-0 top-0 w-1 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-400/30 active:bg-emerald-400/50"
-            />
+            {/* Desktop drag handle */}
+            {!isMobile && (
+              <div
+                onMouseDown={onDragStart}
+                className="absolute bottom-0 left-0 top-0 w-1 cursor-col-resize bg-transparent transition-colors hover:bg-emerald-400/30 active:bg-emerald-400/50"
+              />
+            )}
+
+            {/* Mobile drag indicator pill */}
+            {isMobile && (
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="h-1 w-10 rounded-full bg-stone-300" />
+              </div>
+            )}
+
             {/* Panel header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white px-5 py-4">
               <div>

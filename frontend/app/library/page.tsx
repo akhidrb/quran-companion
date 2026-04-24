@@ -34,7 +34,7 @@ type Tab = 'ask' | 'guidance' | 'verses' | 'daily'
 const TABS: { id: Tab; label: string }[] = [
   { id: 'ask', label: 'Q&A' },
   { id: 'guidance', label: 'Guidance' },
-  { id: 'verses', label: 'Verse Reflections' },
+  { id: 'verses', label: 'Verses' },
   { id: 'daily', label: 'Daily' },
 ]
 

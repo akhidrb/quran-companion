@@ -28,7 +28,7 @@ export default function UserMenu() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs text-stone-500">
+      <span className="hidden sm:inline text-xs text-stone-500">
         <span className="text-stone-400">Signed in as </span>
         <span className="font-medium text-stone-600">{user.username}</span>
       </span>
