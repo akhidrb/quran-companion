@@ -8,6 +8,7 @@ from .routes.guidance import router as guidance_router
 from .routes.daily import router as daily_router
 from .routes.auth import router as auth_router
 from .routes.history import router as history_router
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ app = FastAPI(title="Quran Companion API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.allowed_origins,
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type", "Authorization"],
 )
